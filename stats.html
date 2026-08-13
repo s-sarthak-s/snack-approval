@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="amber" data-scanlines="on" data-motion="on" data-density="cosy">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stats · Snack Approval</title>
+<meta name="description" content="When this office snacks, and on what.">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="/css/style.css">
+<script>window.PAGE = "stats";</script>
+</head>
+<body>
+<main>
+  <div id="statgrid"></div>
+
+  <div class="sec-hd"><h2>Requests by hour</h2><span class="rule"></span><span class="hint" id="peakhint"></span></div>
+  <div class="panel">
+    <div class="hist" id="hist"></div>
+    <div class="hist-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+  </div>
+
+  <div class="sec-hd"><h2>Requests by weekday</h2><span class="rule"></span></div>
+  <div class="panel flush"><table class="tbl" id="weekdays"></table></div>
+
+  <div class="sec-hd"><h2>Most requested, all time</h2><span class="rule"></span></div>
+  <div class="panel flush"><table class="tbl" id="topsnacks"></table></div>
+
+  <div class="sec-hd"><h2>What this office eats</h2><span class="rule"></span></div>
+  <div class="panel flush"><table class="tbl" id="cats"></table></div>
+
+  <div class="sec-hd"><h2>Longest wait right now</h2><span class="rule"></span></div>
+  <div class="panel flush" id="oldest"><div class="empty">Loading…</div></div>
+</main>
+
+<script src="/client/quick.js"></script>
+<script src="/js/core.js"></script>
+<script src="/js/sfx.js"></script>
+<script src="/js/views.js"></script>
+<script src="/js/shell.js"></script>
+<script src="/js/dev-seed.js"></script>
+<script src="/js/page-stats.js"></script>
+</body>
+</html>

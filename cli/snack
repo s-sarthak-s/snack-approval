@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# One entry point for the snack approval terminal tools.
+#
+#   snack                    full-screen TUI
+#   snack demo               TUI with canned data, offline, you are the authority
+#   snack board|feed|stats|me|pending
+#   snack ask "flat white"   file a request (DMs the approver)
+#   snack mcp                run the MCP server on stdio
+#   snack mcp --selftest     exercise the MCP tools and exit
+#
+# Put it on your PATH:  ln -s "$PWD/snack" ~/bin/snack
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "${1:-tui}" in
+  tui)   exec python3 "$HERE/snack_tui.py" "${@:2}" ;;
+  demo)  exec python3 "$HERE/snack_tui.py" --demo "${@:2}" ;;
+  board|feed|stats|me|pending)
+         exec python3 "$HERE/snack_tui.py" --plain "$1" ;;
+  ask)   shift; exec python3 "$HERE/snack_tui.py" --ask "$@" ;;
+  mcp)   shift; exec python3 "$HERE/snack_mcp.py" "$@" ;;
+  -h|--help|help)
+         sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  *)     echo "unknown command: $1" >&2
+         echo "try: snack [tui|demo|board|feed|stats|me|pending|ask|mcp]" >&2
+         exit 2 ;;
+esac

@@ -1,0 +1,6 @@
+# Holds a real person's email and Slack ID. Never commit it.
+snack.config.json
+
+.DS_Store
+__pycache__/
+*.pyc

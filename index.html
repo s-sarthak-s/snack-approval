@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="amber" data-scanlines="on" data-motion="on" data-density="cosy">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snack Approval</title>
+<meta name="description" content="File a snack request and get a ruling over Slack. An office toy.">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="/css/style.css">
+<script>window.PAGE = "request";</script>
+</head>
+<body>
+<main>
+  <div class="panel acc">
+    <label class="lbl" for="snack">What do you want to eat or drink?</label>
+    <div class="ask">
+      <input id="snack" type="text" maxlength="90" autocomplete="off" list="known-snacks"
+             placeholder="flat white, two cookies, the last samosa…">
+      <button class="btn btn-primary" id="send">Send</button>
+    </div>
+    <datalist id="known-snacks"></datalist>
+    <p class="tiny faint" style="margin:9px 0 0"><span id="queuehint"></span></p>
+
+    <div id="recent" style="margin-top:14px"></div>
+
+    <details class="more" id="detailsbox">
+      <summary>Optional details</summary>
+      <div class="body stack">
+        <div class="grid2">
+          <div class="field">
+            <label class="lbl" for="where">Where from</label>
+            <input id="where" type="text" maxlength="60" autocomplete="off" placeholder="kitchen, 3rd floor">
+          </div>
+          <div class="field">
+            <label class="lbl" for="size">Portion</label>
+            <select id="size"></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="lbl" for="plea">Your case
+            <button class="btn-link" id="pleagen" type="button">suggest one</button></label>
+          <textarea id="plea" maxlength="280" placeholder="Optional. Bribery is not tracked but is noticed."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="lbl">Photo evidence <span class="faint">(+5 XP)</span></label>
+          <div class="drop" id="drop">
+            Drop an image here, or tap to choose one
+            <span class="k">PNG / JPG / GIF · up to 8 MB · paste works too</span>
+          </div>
+          <input type="file" id="file" accept="image/*" hidden>
+          <div class="bar" id="progwrap" style="display:none"><i id="prog"></i></div>
+          <div id="preview"></div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="sec-hd"><h2>Where you stand</h2><span class="rule"></span>
+    <a class="hint" href="/board.html">full board</a></div>
+  <div class="panel" id="playercard"></div>
+
+  <div class="sec-hd"><h2>Your last few rulings</h2><span class="rule"></span>
+    <a class="hint" href="/feed.html">whole feed</a></div>
+  <div class="panel flush" id="mine"><div class="empty">Loading…</div></div>
+
+  <div class="sec-hd"><h2>Your badges</h2><span class="rule"></span><span class="hint" id="achcount"></span></div>
+  <div class="ach-grid" id="ach"></div>
+</main>
+
+<script src="/client/quick.js"></script>
+<script src="/js/core.js"></script>
+<script src="/js/sfx.js"></script>
+<script src="/js/views.js"></script>
+<script src="/js/shell.js"></script>
+<script src="/js/dev-seed.js"></script>
+<script src="/js/page-request.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snack Approval</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/style.css">
+<script>
+  /* Slack links from earlier versions point at /review.html?id=… — keep them working. */
+  var id = new URLSearchParams(location.search).get("id");
+  location.replace("/#judge" + (id ? "/" + id : ""));
+</script>
+</head>
+<body>
+<main>
+  <div class="panel"><p class="muted">Taking you to the judgement room… <a href="/#judge">continue</a></p></div>
+</main>
+</body>
+</html>
