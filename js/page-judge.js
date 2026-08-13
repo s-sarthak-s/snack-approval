@@ -91,15 +91,99 @@ async function tellRequester(s, status, note, by) {
   }
 }
 
+/* Run promises with a ceiling on how many are in flight. Slack starts
+   answering 429 if you fire twenty chat.postMessage calls at once. */
+async function pool(items, limit, worker) {
+  const results = [];
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      try { results[i] = { ok: true, value: await worker(items[i]) }; }
+      catch (e) { results[i] = { ok: false, error: e }; }
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
+/* One database write for the whole queue, then the Slack messages together.
+   This used to be a for-await loop: every request cost a round trip plus a DM
+   before the next one started, so a queue of ten took most of a minute. */
 async function approveAll() {
   const pending = Shell.all.filter((s) => s.status === "pending");
   if (!pending.length) return;
   if (!confirm(`Approve all ${pending.length} pending requests?`)) return;
-  toast("Working through the queue…");
-  for (const s of pending) await decide(s.id, "approved", true);
+
+  const btn = $("#blessall");
+  const label = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = `Approving ${pending.length}…`; }
+
+  const by = Shell.me.fullName || Shell.me.email || APPROVER.name;
+  const email = String(Shell.me.email || "").toLowerCase();
+  const at = new Date().toISOString();
+  const patch = {
+    status: "approved", verdict_note: "", decided_by: by,
+    decided_by_email: email, decided_at: at,
+  };
+
+  try {
+    /* Array form is a single PATCH on the collection. */
+    await SNACKS().update(pending.map((s) => Object.assign({ id: s.id }, patch)));
+  } catch (e) {
+    /* If bulk is unavailable, fall back to concurrent single writes rather
+       than dropping back to one-at-a-time. */
+    const wrote = await pool(pending, 6, (s) => SNACKS().update(s.id, patch));
+    const failed = wrote.filter((r) => !r.ok).length;
+    if (failed === pending.length) {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+      SFX.play("error");
+      return toast("Could not approve the queue: " + (e.message || e), "err");
+    }
+  }
+
+  /* One message per person, not one per request: three snacks for the same
+     person is one DM saying all three went through. */
+  const byPerson = new Map();
+  pending.forEach((s) => {
+    const key = s.requester_slack || s.requester_email || s.id;
+    if (!byPerson.has(key)) byPerson.set(key, []);
+    byPerson.get(key).push(s);
+  });
+
+  const sent = await pool([...byPerson.values()], 5, (group) =>
+    group.length === 1
+      ? tellRequester(group[0], "approved", "", by)
+      : tellGroup(group, by));
+
+  const failed = sent.filter((r) => !r.ok).length;
   SFX.play("level");
-  toast(`Approved ${pending.length}. Generous.`, "ok");
+  toast(failed
+    ? `Approved ${pending.length}, but ${failed} notification${failed > 1 ? "s" : ""} failed.`
+    : `Approved ${pending.length} for ${byPerson.size} ${byPerson.size === 1 ? "person" : "people"}. Generous.`,
+    failed ? "err" : "ok");
+
+  if (btn) { btn.disabled = false; btn.textContent = label; }
   await loadData(true);
+}
+
+/* Several approvals for one person, delivered as one message. */
+async function tellGroup(group, by) {
+  const first = slackSafe(firstNameOf(group[0]));
+  const list = group.map((s) => `- ${slackSafe(s.snack)}`).join("\n");
+  const text = `${group.length} snack requests approved`;
+  const b = quick.slack.createBlocks()
+    .header(text)
+    .section(`${first}, ${group.length} of your requests went through in one go:\n${list}`)
+    .fields([
+      { title: "Ruled by", value: slackSafe(by) },
+      { title: "XP", value: `+${XP.APPROVED * group.length}` },
+    ])
+    .divider()
+    .section(`<${SITE_URL()}/|Open snack approval>`);
+  if (group[0].requester_slack) {
+    await quick.slack.sendMessage(group[0].requester_slack, text, { blocks: b.build() });
+  }
 }
 
 /* ---------------- the locked door ---------------- */

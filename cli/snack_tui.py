@@ -835,6 +835,40 @@ def plain(what: str) -> int:
         for r in p["mine"][:10]:
             label, _ = api.VERDICTS.get(r.get("status"), api.VERDICTS["pending"])
             print(f"  {label:9s} {str(r.get('snack'))[:30]:30s} {api.ago(r.get('created_at'))}")
+    elif what == "visits":
+        if not store.client.is_owner():
+            print(f"The visit log belongs to {api.OWNER['name'] or 'the site owner'}.",
+                  file=sys.stderr)
+            return 1
+        try:
+            rows = store.client.fetch_all("visits", page=200)
+        except api.SnackError as e:
+            print(e, file=sys.stderr)
+            return 1
+        if not rows:
+            print("No visits logged yet.")
+            return 0
+        day = 86400
+        now = __import__("time").time()
+        def secs(r):
+            t = api.parse_time(r.get("at") or r.get("created_at"))
+            return now - t.timestamp() if t else 1e9
+        today = [r for r in rows if secs(r) < day]
+        print(f"{len(rows)} visits logged, {len(today)} in the last 24h, "
+              f"{len({r.get('email') for r in rows})} people ever\n")
+        seen = {}
+        for r in rows:
+            k = r.get("email", "?")
+            seen.setdefault(k, {"name": r.get("name") or k, "n": 0, "last": r.get("at")})
+            seen[k]["n"] += 1
+        print(f"{'PERSON':26s} {'VIEWS':>6s}  LAST SEEN")
+        for v in sorted(seen.values(), key=lambda v: v["last"] or "", reverse=True):
+            print(f"{v['name'][:25]:26s} {v['n']:6d}  {api.ago(v['last'])}")
+        print("\nrecent")
+        for r in rows[:20]:
+            print(f"  {str(r.get('name'))[:22]:23s} {str(r.get('page'))[:10]:11s} "
+                  f"{api.ago(r.get('at') or r.get('created_at'))}"
+                  f"{'  mobile' if r.get('mobile') else ''}")
     elif what == "pending":
         queue = [r for r in rows if r.get("status") == "pending"]
         if not queue:
@@ -851,7 +885,7 @@ def plain(what: str) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Snack Approval in a terminal.")
     ap.add_argument("--plain", metavar="VIEW", nargs="?", const="board",
-                    choices=["board", "feed", "stats", "me", "pending"],
+                    choices=["board", "feed", "stats", "me", "pending", "visits"],
                     help="print one view and exit")
     ap.add_argument("--ask", metavar="SNACK", help="file a request and exit")
     ap.add_argument("--where", default="")

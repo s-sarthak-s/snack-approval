@@ -343,5 +343,7 @@ function aboutHTML(st, me) {
     Slack message for each one and answers from a room only he can open. Verdicts come back as a DM.</p>
     <p style="margin:0 0 10px">${st.total} requests from ${st.people} people are stored so far. Data lives in this site's
     Quick database — treat everything here as visible to anyone at Shopify who opens the page.</p>
+    <p style="margin:0 0 10px">Page visits are logged — who opened which page and when — and the
+    person who runs this can see that list. Requests, names, and photos are visible to everyone.</p>
     <p style="margin:0">Signed in as ${esc(me.email || "unknown")}. Press <kbd>?</kbd> for keyboard shortcuts.</p>`;
 }

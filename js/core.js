@@ -17,6 +17,10 @@ const APPROVER = {
   title: "SNACK APPROVAL AUTHORITY",
 };
 
+/* Whoever runs the thing. Sees the admin dashboard, including who visited.
+   Separate from APPROVER on purpose: the owner still cannot rule. */
+const OWNER = { name: "", email: "" };
+
 let CONFIG = { site: "", collection: "snacks" };
 let CONFIG_ERROR = "";
 
@@ -26,6 +30,7 @@ async function loadConfig() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const cfg = await res.json();
     Object.assign(APPROVER, cfg.approver || {});
+    Object.assign(OWNER, cfg.owner || {});
     CONFIG = Object.assign(CONFIG, cfg);
     if (!APPROVER.slackId || !APPROVER.email) {
       CONFIG_ERROR = "snack.config.json has no approver email or Slack ID, so "
@@ -39,6 +44,7 @@ async function loadConfig() {
 }
 
 const SNACKS = () => quick.db.collection(CONFIG.collection || "snacks");
+const VISITS = () => quick.db.collection("visits");
 const ATTEMPTS = () => quick.db.collection("chamber_attempts");
 const SITE_URL = () => window.location.origin;
 
@@ -144,6 +150,32 @@ async function fetchAll(pageSize = 100, hardStop = 4000) {
   /* Defensive: the API can hand back duplicates across pages if rows are written mid-scan. */
   const seen = new Set();
   return out.filter((r) => (r && r.id && !seen.has(r.id) ? seen.add(r.id) : false));
+}
+
+function isOwner(user) {
+  if (!user || !OWNER.email) return false;
+  return String(user.email || "").toLowerCase() === String(OWNER.email).toLowerCase();
+}
+
+/* Record that somebody opened a page. The admin dashboard reads these, and the
+   settings page says out loud that it happens — logging colleagues quietly
+   would not be okay. One row per navigation, not per poll. */
+async function logVisit(user, page) {
+  if (!user || !user.email) return;
+  try {
+    await VISITS().create({
+      email: String(user.email).toLowerCase(),
+      name: user.fullName || user.email,
+      page: page || "unknown",
+      at: new Date().toISOString(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+      screen: `${window.innerWidth}x${window.innerHeight}`,
+      mobile: window.innerWidth <= 720,
+      referrer: document.referrer ? new URL(document.referrer).pathname : "",
+    });
+  } catch (e) {
+    /* Never let bookkeeping break the page. */
+  }
 }
 
 function isGod(user) {

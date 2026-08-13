@@ -12,6 +12,7 @@ const PAGES = [
   { id: "stats",    label: "Stats",    href: "/stats.html",    title: "Office telemetry", blurb: "When this office snacks, and on what." },
   { id: "judge",    label: "Judge",    href: "/judge.html",    title: "Judgement room",   blurb: "One person rules here.", godOnly: true },
   { id: "settings", label: "Settings", href: "/settings.html", title: "Settings",         blurb: "Sound, display, and export." },
+  { id: "admin",    label: "Admin",    href: "/admin.html",    title: "Admin",            blurb: "Who is here, what they asked for, and when.", ownerOnly: true },
 ];
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -20,6 +21,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const Shell = {
   me: {},
   god: false,
+  owner: false,
   all: [],
   attempts: [],
   loaded: false,
@@ -54,10 +56,10 @@ const Shell = {
 /* ---------------- chrome ---------------- */
 
 function navHTML(current, pending) {
-  return PAGES.filter((p) => !p.godOnly || Shell.god)
+  return PAGES.filter((p) => (!p.godOnly || Shell.god) && (!p.ownerOnly || Shell.owner))
     .map((p) => {
       const badge = p.id === "judge" && pending ? `<span class="count">${pending}</span>` : "";
-      return `<a class="tab ${p.id === "judge" ? "god" : ""}" href="${p.href}"
+      return `<a class="tab ${p.id === "judge" ? "god" : ""}${p.id === "admin" ? " owner" : ""}" href="${p.href}"
         aria-current="${p.id === current ? "page" : "false"}">${esc(p.label)}${badge}</a>`;
     })
     .join("");
@@ -117,7 +119,8 @@ function mountChrome() {
   if (main) {
     const foot = document.createElement("footer");
     foot.className = "pagefoot";
-    foot.innerHTML = PAGES.filter((p) => (!p.godOnly || Shell.god) && p.id !== Shell.page)
+    foot.innerHTML = PAGES.filter((p) => (!p.godOnly || Shell.god)
+        && (!p.ownerOnly || Shell.owner) && p.id !== Shell.page)
       .map((p) => `<a href="${p.href}">${esc(p.label)}</a>`)
       .join('<span class="dot">·</span>') +
       `<div class="tiny faint" style="margin-top:10px">Rulings by ${esc(APPROVER.name)}. Press <kbd>?</kbd> for shortcuts.</div>`;
@@ -319,7 +322,8 @@ function wireShell() {
     }
     const n = Number(e.key);
     if (n >= 1 && n <= 9) {
-      const p = PAGES.filter((x) => !x.godOnly || Shell.god)[n - 1];
+      const p = PAGES.filter((x) => (!x.godOnly || Shell.god)
+        && (!x.ownerOnly || Shell.owner))[n - 1];
       if (p) { SFX.ui("move"); location.href = p.href; }
     }
   });
@@ -346,8 +350,10 @@ Shell.start = async function start() {
   const bootJob = runBoot();
   Shell.me = (await quick.id.waitForUser()) || {};
   Shell.god = isGod(Shell.me);
+  Shell.owner = isOwner(Shell.me);
   paintWho();
   paintNav();
+  logVisit(Shell.me, Shell.page);
 
   await loadData(true);
   await bootJob;

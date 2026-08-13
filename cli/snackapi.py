@@ -73,6 +73,9 @@ APPROVER = {
     "name": _appr.get("name", "the approver"),
     "short": _appr.get("short") or _appr.get("name", "the approver"),
 }
+_own = _CFG.get("owner") or {}
+OWNER = {"name": _own.get("name", ""), "email": str(_own.get("email", "")).lower()}
+
 if not CONFIG_ERROR and (not APPROVER["slack_id"] or not APPROVER["email"]):
     CONFIG_ERROR = (f"{CONFIG_PATH} has no approver email or Slack ID, so "
                     f"nobody can be asked and nobody can rule.")
@@ -216,6 +219,13 @@ class Client:
         if self._me is None:
             self._me = self.request("GET", "/api/id/") or {}
         return self._me
+
+    def is_owner(self, user: dict | None = None) -> bool:
+        """Whoever runs the site. Can see the visit log; still cannot rule."""
+        u = user if user is not None else self.me()
+        if not OWNER["email"]:
+            return False
+        return str(u.get("email", "")).lower() == OWNER["email"]
 
     def is_god(self, user: dict | None = None) -> bool:
         u = user if user is not None else self.me()

@@ -1,11 +1,15 @@
 {
-  "_comment": "Copy to snack.config.json and fill in. That file is gitignored, because it holds a real person's contact details. The approver is the one human allowed to approve or deny requests. baseUrl is where the site is hosted; the browser ignores it and uses its own origin.",
+  "_comment": "Copy to snack.config.json and fill in. That file is gitignored, because it holds real people's contact details. `approver` is the one human who may approve or deny requests. `owner` is whoever runs the thing and can see the admin dashboard, including the visit log. Leave owner blank to switch the dashboard off entirely.",
   "approver": {
     "name": "Firstname Lastname",
     "short": "Firstname",
     "email": "approver@example.com",
     "slackId": "U00000000000",
     "title": "SNACK APPROVAL AUTHORITY"
+  },
+  "owner": {
+    "name": "Your Name",
+    "email": "you@example.com"
   },
   "baseUrl": "https://your-site.example.com",
   "site": "snack-approval",

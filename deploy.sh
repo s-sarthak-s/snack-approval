@@ -27,7 +27,7 @@ esac
 BUILD="$(mktemp -d)/snack-approval"
 mkdir -p "$BUILD"
 cp -R css js favicon.svg "$BUILD"/
-cp index.html feed.html board.html stats.html judge.html settings.html review.html "$BUILD"/
+cp index.html feed.html board.html stats.html judge.html settings.html admin.html review.html "$BUILD"/
 
 # The approver's identity is not in git, and the site needs it at runtime.
 cp snack.config.json "$BUILD"/

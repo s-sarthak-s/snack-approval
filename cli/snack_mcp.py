@@ -205,6 +205,52 @@ def t_rule(args: dict) -> str:
             f"{rec.get('snack')} for {rec.get('requester_name')} is now {verdict}.")
 
 
+def t_visits(args: dict) -> str:
+    if not client().is_owner():
+        raise api.SnackError(
+            f"The visit log belongs to {api.OWNER['name'] or 'the site owner'}. "
+            f"You are signed in as {client().me().get('email', 'unknown')}.")
+    hours = max(1, min(int(args.get("hours") or 24), 24 * 90))
+    rows = client().fetch_all("visits", page=200)
+    if not rows:
+        return "No visits logged yet."
+
+    cutoff = time.time() - hours * 3600
+    def when(r):
+        t = api.parse_time(r.get("at") or r.get("created_at"))
+        return t.timestamp() if t else 0
+    window = [r for r in rows if when(r) >= cutoff]
+
+    by_person: dict = {}
+    for r in window:
+        k = r.get("email") or "unknown"
+        slot = by_person.setdefault(k, {"name": r.get("name") or k, "n": 0,
+                                        "pages": set(), "last": r.get("at")})
+        slot["n"] += 1
+        slot["pages"].add(r.get("page") or "?")
+        if str(r.get("at") or "") > str(slot["last"] or ""):
+            slot["last"] = r.get("at")
+
+    pages: dict = {}
+    for r in window:
+        pages[r.get("page") or "?"] = pages.get(r.get("page") or "?", 0) + 1
+
+    live = [r for r in rows if when(r) > time.time() - 900]
+    out = [f"{len(window)} page views in the last {hours}h from {len(by_person)} people "
+           f"({len(rows)} views logged all time)."]
+    if live:
+        out.append("On the site in the last 15 minutes: "
+                   + ", ".join(sorted({r.get("name") or r.get("email") for r in live})))
+    out.append("")
+    for p in sorted(by_person.values(), key=lambda p: -p["n"]):
+        out.append(f"- {p['name']}: {p['n']} views, last {api.ago(p['last'])}, "
+                   f"pages: {', '.join(sorted(p['pages']))}")
+    out.append("")
+    out.append("pages: " + ", ".join(f"{k} x{v}" for k, v in
+                                     sorted(pages.items(), key=lambda kv: -kv[1])))
+    return "\n".join(out)
+
+
 def t_reasons(_args: dict) -> str:
     return ("Canned approval reasons:\n- " + "\n- ".join(api.YES_REASONS) +
             "\n\nCanned denial reasons:\n- " + "\n- ".join(api.NO_REASONS) +
@@ -325,6 +371,23 @@ TOOLS = [
         },
         "annotations": WRITE,
         "handler": t_rule,
+    },
+    {
+        "name": "snack_visits",
+        "title": "Who has been on the site",
+        "description": f"Visit log: who opened which page and when, plus who is on the site "
+                       f"right now. Owner only — works for "
+                       f"{api.OWNER['name'] or 'the configured owner'} and errors for everyone "
+                       f"else. People are told in the app that visits are logged.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"hours": {"type": "integer", "minimum": 1, "maximum": 2160,
+                                     "default": 24,
+                                     "description": "How far back to look. Default 24."}},
+            "additionalProperties": False,
+        },
+        "annotations": READ,
+        "handler": t_visits,
     },
     {
         "name": "snack_reasons",

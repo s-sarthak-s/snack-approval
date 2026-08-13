@@ -47,6 +47,7 @@ No emoji anywhere. That was a requirement.
 | `/stats.html` | Histograms, most requested, ruling times |
 | `/judge.html` | Rulings. Approver only; everyone else gets a locked door |
 | `/settings.html` | Sound, colour, motion, density, exports |
+| `/admin.html` | Operator dashboard. Owner only |
 
 ## Terminal client
 
@@ -59,6 +60,7 @@ cd cli
 ./snack                    # full-screen TUI
 ./snack demo               # canned data, offline, and you are the approver
 ./snack board              # print a view and exit; also feed, stats, me, pending
+./snack visits             # who has been on the site (owner only)
 ./snack ask "flat white"   # file a request without opening anything
 ```
 
@@ -86,6 +88,7 @@ file requests for you.
 | `snack_stats` | read: totals, ruling times, busiest hours |
 | `snack_pending` | read: the queue, with ids |
 | `snack_reasons` | read: the canned approval and denial lines |
+| `snack_visits` | read: who opened what and when. Owner only |
 | `snack_request` | **write**: files a request and DMs the approver |
 | `snack_rule` | **write**: approves or denies, and DMs the requester |
 
@@ -112,11 +115,19 @@ cp snack.config.example.json snack.config.json
     "email": "approver@example.com",
     "slackId": "U00000000000"
   },
+  "owner": {
+    "name": "Your Name",
+    "email": "you@example.com"
+  },
   "baseUrl": "https://your-site.example.com",
   "site": "your-site",
   "collection": "snacks"
 }
 ```
+
+`approver` is the one person who can rule. `owner` is whoever runs the thing and
+sees the admin dashboard. They are separate: the owner still cannot approve a
+snack. Leave `owner` blank and the dashboard is off for everybody.
 
 `snack.config.json` is gitignored on purpose: it holds a real person's email and
 Slack ID. The browser fetches it at boot and the Python client reads the same
@@ -156,15 +167,29 @@ Scoring, ranks, and categories exist twice, in `js/core.js` and
 `cli/snackapi.py`. A shared source would mean a build step for a joke app, so
 the rule is to change both together.
 
-## A note on the lock
+## Admin dashboard
 
-The approver check runs on the client, against a database any signed-in employee
-can write to. It is not real authorisation and is not pretending to be. What it
-does instead is make tampering obvious: any verdict not signed with the
-approver's email is labelled **Unsanctioned** in the feed.
+`/admin.html` shows the owner who has been on the site: page views by person,
+who is on right now, first and last seen, which pages get opened, visits by
+hour, the raw visit log, every request, and the judge room's door log. CSV export
+for the visit log and the requests.
 
-Nothing here is private. Anyone who can open the site sees every request, name,
-and plea, which the settings page says out loud.
+Each page load writes one row to a `visits` collection: email, name, page,
+timestamp, timezone, viewport, and whether it was a phone. That is a log of
+colleagues' behaviour, so the app says so plainly on the settings page rather
+than doing it quietly. If you do not want it, delete the `logVisit` call in
+`js/shell.js`; nothing else depends on it.
+
+## A note on the locks
+
+The approver and owner checks run on the client, against a database any signed-in
+employee can read and write. They are not real authorisation and are not
+pretending to be. What they do is keep the pages out of the way and make
+tampering obvious: any verdict not signed with the approver's email is labelled
+**Unsanctioned** in the feed.
+
+Nothing here is private, including the visit log. Anyone who can open the site
+can read every request, name, plea, and visit row if they go looking.
 
 ## Licence
 
